@@ -20,6 +20,7 @@ import ee.datanor.httpclient.logger.masker.BodyMasker;
 import ee.datanor.httpclient.logger.processor.RequestLogProcessor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpEntityContainer;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -54,11 +55,15 @@ public class RequestBodyLogProcessor implements RequestLogProcessor {
             }
             Charset charset = getCharset(entityContainer.getEntity());
             try {
-                String body = new String(entityContainer.getEntity().getContent().readAllBytes(), charset);
-                return maskSensitivePatterns(sensitiveBodyMaskers, body);
+                HttpEntity httpEntity = entityContainer.getEntity();
+                if (httpEntity.isRepeatable()) {
+                    String body = getEntityStream(((HttpEntityContainer) request).getEntity()).toString(charset);
+                    return maskSensitivePatterns(sensitiveBodyMaskers, body);
+                }
+                return "";
             } catch (Exception e) {
-                log.error("Failed to parse httpclient request - " + e.getMessage(), e);
-                return getEntityStream(((HttpEntityContainer) request).getEntity()).toString(charset);
+                log.warn("Failed to parse httpclient request - " + e.getMessage(), e);
+                return "";
             }
         }
         return null;
