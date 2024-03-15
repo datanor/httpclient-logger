@@ -17,9 +17,11 @@
 package ee.datanor.httpclient.logger.processor.request;
 
 import ee.datanor.httpclient.logger.masker.BodyMasker;
+import ee.datanor.httpclient.logger.processor.LogProcessor;
 import ee.datanor.httpclient.logger.processor.RequestLogProcessor;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpEntityContainer;
 import org.apache.hc.core5.http.HttpRequest;
@@ -29,16 +31,29 @@ import java.nio.charset.Charset;
 import java.util.Set;
 
 @Slf4j
-@RequiredArgsConstructor
 public class RequestBodyLogProcessor implements RequestLogProcessor {
     public static final String MDC_KEY = "HC_REQUEST_BODY";
 
     private final int maxLoggedRequestLength;
+    private final Set<String> includedRequestBodyMediaSubtypes;
     private final Set<BodyMasker> sensitiveBodyMaskers;
+
+    public RequestBodyLogProcessor(int maxLoggedRequestLength, Set<BodyMasker> sensitiveBodyMaskers) {
+        this(maxLoggedRequestLength, sensitiveBodyMaskers, Set.of("json", "xml"));
+    }
+
+    public RequestBodyLogProcessor(int maxLoggedRequestLength, Set<BodyMasker> sensitiveBodyMaskers, Set<String> includedResponseBodyMediaSubtypes) {
+        this.maxLoggedRequestLength = maxLoggedRequestLength;
+        this.includedRequestBodyMediaSubtypes = includedResponseBodyMediaSubtypes;
+        this.sensitiveBodyMaskers = sensitiveBodyMaskers;
+    }
 
     @Override
     public void process(HttpRequest httpRequest, HttpContext context) {
-
+        if (!requestBodyMediaSubtypeMatches(httpRequest)) {
+            setMDCValue(MDC_KEY, LogProcessor.EMPTY_REPLACEMENT);
+            return;
+        }
         String requestBody = replaceEmpty(getRequestBody(httpRequest));
         if (requestBody.length() > maxLoggedRequestLength) {
             setMDCValue(MDC_KEY, requestBody.substring(0, maxLoggedRequestLength));
@@ -69,4 +84,19 @@ public class RequestBodyLogProcessor implements RequestLogProcessor {
         return null;
     }
 
+    private boolean requestBodyMediaSubtypeMatches(HttpRequest httpRequest) {
+        try {
+            String mediaType = httpRequest.getHeader("Content-Type").getValue();
+            ContentType contentType = ContentType.parseLenient(mediaType);
+            String mimeType = contentType.getMimeType();
+            if (StringUtils.isEmpty(mediaType)) {
+                return false;
+            }
+            return includedRequestBodyMediaSubtypes.stream()
+                    .map(String::toLowerCase)
+                    .anyMatch(mimeType::contains);
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

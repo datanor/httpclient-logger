@@ -17,6 +17,7 @@
 package ee.datanor.httpclient.logger.processor.response;
 
 import ee.datanor.httpclient.logger.masker.BodyMasker;
+import ee.datanor.httpclient.logger.processor.LogProcessor;
 import ee.datanor.httpclient.logger.processor.ResponseLogProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -63,6 +64,8 @@ public class ResponseBodyLogProcessor implements ResponseLogProcessor {
     @Override
     public void process(HttpResponse httpResponse, HttpContext context) {
         if (!responseBodyMediaSubtypeMatches(httpResponse)) {
+            setMDCValue(BODY_MDC_KEY, LogProcessor.EMPTY_REPLACEMENT);
+            setMDCValue(LENGTH_MDC_KEY, LogProcessor.EMPTY_REPLACEMENT);
             return;
         }
         String responseBody = getResponseBody(httpResponse);

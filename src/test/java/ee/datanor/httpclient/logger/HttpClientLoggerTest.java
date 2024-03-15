@@ -52,7 +52,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @WireMockTest
 public class HttpClientLoggerTest {
@@ -103,7 +102,6 @@ public class HttpClientLoggerTest {
 
         // then
         assertEquals("200", MDC.get("HC_RESPONSE_STATUS"));
-        assertTrue(MDC.get("HC_RESPONSE_HEADERS").contains("X-Res-Test: test"));
         assertEquals("8", MDC.get("HC_RESPONSE_BODY_LENGTH"));
         assertEquals("[\"test\"]", MDC.get("HC_RESPONSE_BODY"));
     }

@@ -28,7 +28,7 @@ public class HeaderUtil {
 
     public static String headersToString(Header[] headers, Set<String> includedHeaders) {
         return Arrays.stream(headers)
-                .filter(h -> !includedHeaders.contains(h.getName().toLowerCase()))
+                .filter(h -> includedHeaders.contains(h.getName().toLowerCase()))
                 .map(h -> {
                     String value = h.getValue();
                     return String.format("%s: %s", h.getName(), value);
